@@ -9,7 +9,7 @@ FROM python:3.12-slim
 # METADATA
 # Labels are queryable via `docker inspect`. Use them.
 # -----------------------------------------------------------------------------
-LABEL maintainer="fikias@dataviva.com"
+LABEL maintainer="fikias@test.com"
 LABEL description="00-basics image-build exercise"
 
 # -----------------------------------------------------------------------------

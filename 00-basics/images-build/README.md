@@ -1,53 +1,38 @@
-# docker-run
+# images-build
 
-Core runtime flags. Every command here is independent — run them one at a time, understand the output before moving on.
+Minimal annotated image. No pip deps — stdlib only.
 
-## What you're learning
+## Files
 
-- How Docker starts and manages containers
-- The difference between foreground, interactive, and detached modes
-- How port mapping, naming, env injection, and resource constraints work at the CLI level
+| File            | Purpose                                  |
+| --------------- | ---------------------------------------- |
+| `Dockerfile`    | Every instruction commented with its why |
+| `app.py`        | HTTP server using only `http.server`     |
+| `.dockerignore` | Keeps build context clean                |
 
-## Run the exercises
+## Build and run
 
 ```bash
-bash exercises.sh
+docker build -t images-build:0.0.1 .
+docker run -it --rm -p 8080:8080 images-build:0.0.1
+curl localhost:8080
 ```
 
-Or execute each block individually. Prefer individual — understand each flag before combining them.
+## What each instruction does
 
----
+| Instruction  | Why                                                |
+| ------------ | -------------------------------------------------- |
+| `FROM`       | Base image — sets the foundation                   |
+| `COPY`       | Brings files into the image                        |
+| `RUN`        | Executes commands during build                     |
+| `ENV`        | Sets environment variables that persist at runtime |
+| `EXPOSE`     | Documents the port — does not publish it           |
+| `USER`       | Drops root — run as nobody                         |
+| `ENTRYPOINT` | Fixed executable, PID 1, receives signals          |
+| `CMD`        | Default args to entrypoint, overridable at runtime |
 
-## Concepts
+## Key rules
 
-### Lifecycle
-
-```
-docker run   → creates + starts a container
-docker start → starts a stopped container
-docker stop  → sends SIGTERM, then SIGKILL after grace period
-docker rm    → removes stopped container
-```
-
-### Foreground vs Detached
-
-```
-docker run nginx          # foreground — blocks your terminal, logs stream
-docker run -d nginx       # detached — runs in background, returns container ID
-```
-
-### Port mapping
-
-```
--p HOST_PORT:CONTAINER_PORT
-```
-
-Container exposes a port internally. `-p` maps it to your host. Without `-p`, the container port is unreachable from outside.
-
-### `--rm`
-
-Removes the container automatically when it exits. Use for one-off tasks. Don't use for containers you need to inspect after failure.
-
-### Resource constraints
-
-Docker doesn't enforce limits by default. A container can consume all host memory. Always set limits in production — this applies to Kubernetes too (requests/limits in the pod spec).
+- Deps before code — least changed layers go first
+- Chain RUN commands — deletions in separate layers don't save space
+- Exec form always — shell form breaks signal handling

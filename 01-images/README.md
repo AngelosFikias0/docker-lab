@@ -16,26 +16,26 @@ Every Dockerfile instruction maps to a specific action the builder takes. Unders
 
 ### Instruction Reference
 
-| Instruction | Produces a Layer | What It Does |
-|---|---|---|
-| `FROM` | No (inherits) | Seeds the build with an existing image's layer stack. `FROM scratch` starts with zero layers. |
-| `RUN` | **Yes** | Executes a command in a temporary container, snapshots the resulting filesystem diff as a new layer. |
-| `COPY` | **Yes** | Copies files from the build context into the image filesystem. Hashes source files for cache key. |
-| `ADD` | **Yes** | Like `COPY` but also decompresses local tarballs and fetches remote URLs. Prefer `COPY` unless you need those features. |
-| `ENV` | No | Writes key-value pairs into the image config. Available at build time and runtime. |
-| `ARG` | No | Build-time variable only. Not present in the final image config. Invalidates cache when its value changes. |
-| `WORKDIR` | No | Sets working directory in config. Creates the directory if absent (no layer if it already exists). |
-| `USER` | No | Sets the default UID/GID in config. No filesystem change. |
-| `EXPOSE` | No | Documents intent only. Does not open ports. |
-| `VOLUME` | No | Declares a mount point in config. The directory is created at container start, not build time. |
-| `ENTRYPOINT` | No | Sets the fixed executable. Config-only. |
-| `CMD` | No | Sets default arguments to `ENTRYPOINT`, or the default command if no `ENTRYPOINT` is set. Config-only. |
-| `LABEL` | No | Adds arbitrary metadata to the image config. |
-| `ONBUILD` | No | Registers a trigger that fires when this image is used as a base in another build. |
-| `HEALTHCHECK` | No | Embeds a health probe command in the image config. |
-| `SHELL` | No | Overrides the default shell used for `RUN`, `CMD`, `ENTRYPOINT` in shell form. |
+| Instruction   | Produces a Layer | What It Does                                                                                                            |
+| ------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `FROM`        | No (inherits)    | Seeds the build with an existing image's layer stack. `FROM scratch` starts with zero layers.                           |
+| `RUN`         | **Yes**          | Executes a command in a temporary container, snapshots the resulting filesystem diff as a new layer.                    |
+| `COPY`        | **Yes**          | Copies files from the build context into the image filesystem. Hashes source files for cache key.                       |
+| `ADD`         | **Yes**          | Like `COPY` but also decompresses local tarballs and fetches remote URLs. Prefer `COPY` unless you need those features. |
+| `ENV`         | No               | Writes key-value pairs into the image config. Available at build time and runtime.                                      |
+| `ARG`         | No               | Build-time variable only. Not present in the final image config. Invalidates cache when its value changes.              |
+| `WORKDIR`     | No               | Sets working directory in config. Creates the directory if absent (no layer if it already exists).                      |
+| `USER`        | No               | Sets the default UID/GID in config. No filesystem change.                                                               |
+| `EXPOSE`      | No               | Documents intent only. Does not open ports.                                                                             |
+| `VOLUME`      | No               | Declares a mount point in config. The directory is created at container start, not build time.                          |
+| `ENTRYPOINT`  | No               | Sets the fixed executable. Config-only.                                                                                 |
+| `CMD`         | No               | Sets default arguments to `ENTRYPOINT`, or the default command if no `ENTRYPOINT` is set. Config-only.                  |
+| `LABEL`       | No               | Adds arbitrary metadata to the image config.                                                                            |
+| `ONBUILD`     | No               | Registers a trigger that fires when this image is used as a base in another build.                                      |
+| `HEALTHCHECK` | No               | Embeds a health probe command in the image config.                                                                      |
+| `SHELL`       | No               | Overrides the default shell used for `RUN`, `CMD`, `ENTRYPOINT` in shell form.                                          |
 
-### What "No layer" Actually Means
+### What "No Layer" Actually Means
 
 Instructions that produce no layer still produce a **history entry** in `config.json`. They are recorded in the build history with `empty_layer: true`. They affect runtime behavior through the image config but add zero bytes to the filesystem.
 
@@ -81,7 +81,7 @@ docker build .
 
 ### Key Implications
 
-**`RUN apt-get install && apt-get clean` must be a single instruction.**  
+**`RUN apt-get install && apt-get clean` must be a single instruction.**
 Running clean in a separate `RUN` creates a new layer on top. The package cache bytes are already committed to the prior layer and cannot be removed retroactively.
 
 ```dockerfile
@@ -94,11 +94,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-**`ADD <url>` bypasses the build cache.**  
+**`ADD <url>` bypasses the build cache.**
 Remote URL fetches always re-execute. Use `RUN curl` with explicit cache control instead, or use BuildKit cache mounts.
 
-**`ARG` before `FROM` is special.**  
-`ARG` declared before the first `FROM` is scoped to the `FROM` line only (for parameterizing the base image tag). It is not available in subsequent instructions unless re-declared.
+**`ARG` before `FROM` is special.**
+`ARG` declared before the first `FROM` is scoped to the `FROM` line only. Not available in subsequent instructions unless re-declared.
 
 ```dockerfile
 ARG BASE_TAG=3.12-slim
@@ -122,7 +122,7 @@ Image
 
 ### Layer
 
-Each `RUN`, `COPY`, and `ADD` instruction in a Dockerfile produces a new layer. A layer is a **tar archive of filesystem changes** relative to the previous layer — additions, modifications, and deletions (whiteout files).
+Each `RUN`, `COPY`, and `ADD` instruction produces a new layer. A layer is a **tar archive of filesystem changes** relative to the previous layer — additions, modifications, and deletions (whiteout files).
 
 ```
 Layer N-1:  /usr/bin/python3
@@ -130,11 +130,9 @@ Layer N:    /app/requirements.txt  ← COPY instruction
 Layer N+1:  /usr/lib/python3/...   ← RUN pip install
 ```
 
-Deletions are represented as **whiteout files**: `.wh.<filename>` or `.wh..wh..opq` (opaque whiteout, hides entire directory).
+Deletions are represented as whiteout files: `.wh.<filename>` or `.wh..wh..opq` (opaque whiteout, hides entire directory).
 
 ### Image Config (`config.json`)
-
-Contains everything needed to run the container:
 
 ```json
 {
@@ -149,84 +147,102 @@ Contains everything needed to run the container:
   },
   "rootfs": {
     "type": "layers",
-    "diff_ids": [
-      "sha256:abc123...",   ← uncompressed layer digest
-      "sha256:def456..."
-    ]
-  },
-  "history": [...]          ← per-instruction metadata (including empty layers)
+    "diff_ids": ["sha256:abc123...", "sha256:def456..."]
+  }
 }
 ```
 
 ### Manifest (`manifest.json`)
 
-The manifest is what the registry and runtime use to locate the image:
-
 ```json
 {
   "schemaVersion": 2,
-  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
-  "config": {
-    "mediaType": "application/vnd.docker.container.image.v1+json",
-    "digest": "sha256:...",
-    "size": 7023
-  },
-  "layers": [
-    {
-      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-      "digest": "sha256:...",   ← compressed layer digest (used for pull/push)
-      "size": 31379712
-    }
-  ]
+  "config": { "digest": "sha256:...", "size": 7023 },
+  "layers": [{ "digest": "sha256:...", "size": 31379712 }]
 }
 ```
 
-> `diff_ids` in config = **uncompressed** SHA256.  
-> `digest` in manifest = **compressed** SHA256.  
+> `diff_ids` in config = **uncompressed** SHA256.
+> `digest` in manifest = **compressed** SHA256.
 > They will never match. This is intentional.
 
 ---
 
 ## Union Filesystem (OverlayFS)
 
-At container runtime, Docker stacks image layers using **OverlayFS**:
-
 ```
 Container writable layer  ← upperdir  (ephemeral, destroyed on stop)
 ─────────────────────────
 Image Layer N             ← lowerdir (read-only)
 Image Layer N-1           ← lowerdir (read-only)
-...
 Image Layer 0             ← lowerdir (read-only)
 ```
 
-OverlayFS merges all lowerdirs into a single unified view. Writes go to the upperdir only (copy-on-write). The image layers are never modified.
+Writes go to upperdir only (copy-on-write). Image layers are never modified.
 
 ```bash
-# Inspect the overlay mount of a running container
 docker inspect <container_id> | jq '.[0].GraphDriver.Data'
-
-# Output:
-# {
-#   "LowerDir":  "/var/lib/docker/overlay2/<id>/diff:...",
-#   "MergedDir": "/var/lib/docker/overlay2/<id>/merged",
-#   "UpperDir":  "/var/lib/docker/overlay2/<id>/diff",
-#   "WorkDir":   "/var/lib/docker/overlay2/<id>/work"
-# }
 ```
 
 ---
 
-## Content Addressability
+## Layer Caching
 
-Every layer and config is identified by its **SHA256 digest**. Docker never stores duplicates. If two images share a base, they reference the same layer blobs on disk.
+Cache is keyed on base image digest, instruction string, and file content hash. **Invalidated from the point of change downward.**
 
-```bash
-# Verify layer digests
-docker image inspect <image> | jq '.[0].RootFS.Layers'
+```dockerfile
+# Order by volatility: stable → volatile
+COPY requirements.txt .              # rarely changes → cached
+RUN pip install -r requirements.txt
+COPY . .                             # changes every commit — always last
+```
 
-# Raw layer content on disk
-ls /var/lib/docker/overlay2/
+BuildKit cache mounts — persist across builds, never ship in image:
+
+```dockerfile
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+```
+
+---
+
+## Image Optimization
+
+### 1 — Minimal base image
+
+```
+python:3.13          ~1.1GB — full Debian + build tools
+python:3.13-slim     ~200MB — Debian minimal
+python:3.13-alpine   ~50MB  — Alpine (watch for glibc issues)
+scratch              0MB    — static binaries only
+```
+
+### 2 — Multi-stage builds
+
+Builder stages do the heavy work. Final stage takes only the output. Build tools never ship.
+
+```dockerfile
+FROM python:3.13-slim AS builder
+RUN pip install -r requirements.txt
+
+FROM python:3.13-slim AS final
+COPY --from=builder /usr/local/lib/python3.13/site-packages \
+                    /usr/local/lib/python3.13/site-packages
+```
+
+### 3 — Non-root execution
+
+```dockerfile
+USER 65534:65534   # nobody — no home, no shell, no privileges
+```
+
+### 4 — Exec form entrypoint
+
+Shell form makes `/bin/sh` PID 1. Your app never receives SIGTERM.
+
+```dockerfile
+ENTRYPOINT ["python3", "main.py"]   # correct — your process is PID 1
+ENTRYPOINT python3 main.py          # wrong  — /bin/sh is PID 1
 ```
 
 ---
@@ -234,52 +250,51 @@ ls /var/lib/docker/overlay2/
 ## Inspect Commands
 
 ```bash
-# Full image metadata
-docker image inspect <image>
-
-# Layer history with sizes
-docker image history <image>
-
-# Export image as tar and inspect raw structure
-docker save <image> | tar -xvC ./unpacked/
-
-# Contents of unpacked image:
-# manifest.json
-# <config_digest>.json
-# <layer_digest>/
-#   └── layer.tar
-
-# Decompress and inspect a specific layer
-tar -xvf unpacked/<layer>/layer.tar
-
-# Interactive layer explorer
-dive <image>
+docker image inspect <image>                   # full metadata
+docker image history <image>                   # layer history + sizes
+docker save <image> | tar -xvC ./unpacked/     # raw image structure
+dive <image>                                   # interactive layer explorer
 ```
 
 ---
 
-## Layer Caching
+## Labs
 
-The Docker build cache is keyed on:
-
-1. **Base image identity** — `FROM` digest
-2. **Instruction string** — exact text of the Dockerfile instruction
-3. **File content hash** — for `COPY` / `ADD`, SHA256 of the source files
-
-Cache is **invalidated from the point of change downward**. Every instruction after a cache miss rebuilds.
-
-```dockerfile
-# Order by volatility: stable → volatile
-COPY requirements.txt .          # rarely changes → cached
-RUN pip install -r requirements.txt
-COPY . .                         # changes every commit → cache busted here only
+```
+01-images/
+├── multistage/          # Production-grade Python Flask image
+│   ├── Dockerfile       # 4-stage build: base → deps → test → final
+│   ├── main.py          # Flask app — /health and / endpoints
+│   ├── requirements.txt # Pinned deps: flask, pytest
+│   └── tests/
+│       └── test_main.py # pytest suite — runs as CI gate in test stage
+└── nginx-example/       # Static site served via nginx
+    ├── Dockerfile
+    ├── nginx.conf
+    └── html/
+        └── index.html
 ```
 
-**BuildKit cache mounts** (bypass layer cache, persist across builds):
+### multistage
 
-```dockerfile
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+```bash
+docker build -t python-test:0.0.2 .
+docker run -it --rm -p 8080:8080 python-test:0.0.2
+curl localhost:8080/health
+
+# Debug — stop before test stage
+docker build --target deps -t python-test:debug .
+docker run --rm -it python-test:debug /bin/bash
+
+# CI gate — build test stage only
+docker build --target test .
+```
+
+### nginx-example
+
+```bash
+docker build -t nginx-example:0.0.1 .
+docker run -it --rm -p 8080:80 nginx-example:0.0.1
 ```
 
 ---

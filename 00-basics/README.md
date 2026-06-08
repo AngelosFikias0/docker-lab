@@ -1,4 +1,4 @@
-# 00-basics
+# Basics
 
 Two exercises. No dependencies. Everything runs with a plain Docker install.
 
@@ -25,13 +25,3 @@ you'll use daily: `-d`, `-it`, `-p`, `-e`, `--rm`, `--name`, `--memory`,
 `images-build` — the image build lifecycle. Covers `FROM`, `COPY`, `RUN`,
 `ENV`, `EXPOSE`, `USER`, `ENTRYPOINT` vs `CMD`, layer caching order, and
 `.dockerignore`.
-
-## Prerequisites
-
-- Docker installed and running
-- Nothing else
-
-## Order
-
-Do `docker-run` first. You need to understand how containers behave at
-runtime before you understand why Dockerfiles are written the way they are.

@@ -1,5 +1,5 @@
 """
-Minimal HTTP server — stdlib only, no pip install.
+Minimal HTTP server - stdlib only, no pip install.
 Purpose: give the Dockerfile something real to build and run.
 """
 
@@ -24,6 +24,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"Starting on port {PORT} — APP_ENV={APP_ENV}")
+    print(f"Starting on port {PORT} - APP_ENV={APP_ENV}")
     with http.server.HTTPServer(("", PORT), Handler) as srv:
         srv.serve_forever()

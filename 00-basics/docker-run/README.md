@@ -1,6 +1,6 @@
 # docker-run
 
-Core runtime flags. Every command here is independent — run them one at a time, understand the output before moving on.
+Core runtime flags. Every command here is independent. Run them one at a time and understand the output before moving on.
 
 ## What you're learning
 
@@ -14,7 +14,7 @@ Core runtime flags. Every command here is independent — run them one at a time
 bash exercises.sh
 ```
 
-Or execute each block individually. Prefer individual — understand each flag before combining them.
+Or execute each block individually. Prefer individual. Understand each flag before combining them.
 
 ---
 
@@ -23,17 +23,17 @@ Or execute each block individually. Prefer individual — understand each flag b
 ### Lifecycle
 
 ```
-docker run   → creates + starts a container
-docker start → starts a stopped container
-docker stop  → sends SIGTERM, then SIGKILL after grace period
-docker rm    → removes stopped container
+docker run   -> creates + starts a container
+docker start -> starts a stopped container
+docker stop  -> sends SIGTERM, then SIGKILL after grace period
+docker rm    -> removes stopped container
 ```
 
 ### Foreground vs Detached
 
 ```
-docker run nginx          # foreground — blocks your terminal, logs stream
-docker run -d nginx       # detached — runs in background, returns container ID
+docker run nginx          # foreground, blocks your terminal, logs stream
+docker run -d nginx       # detached, runs in background, returns container ID
 ```
 
 ### Port mapping
@@ -50,4 +50,4 @@ Removes the container automatically when it exits. Use for one-off tasks. Don't 
 
 ### Resource constraints
 
-Docker doesn't enforce limits by default. A container can consume all host memory. Always set limits in production — this applies to Kubernetes too (requests/limits in the pod spec).
+Docker doesn't enforce limits by default. A container can consume all host memory. Always set limits in production. This applies to Kubernetes too (requests/limits in the pod spec).

@@ -2,7 +2,7 @@
 
 A structured hands-on Docker engineering lab.
 
-Not a collection of examples — a progressive learning system that moves from Docker fundamentals → multi-service architectures → production-like container systems.
+Not a collection of examples. A progressive learning system moving from Docker fundamentals to multi-service architectures to production container systems.
 
 ---
 
@@ -28,91 +28,60 @@ Each folder is a conceptual layer. Work through them in order.
 
 ```
 Docker-Lab/
-├── 00-basics/              # Container lifecycle, core CLI, image fundamentals
-│   ├── docker-run/
-│   └── images-build/
-├── 01-images/              # Image creation, layering, optimization
-│   └── nginx-example/
-├── 02-networks/            # Bridge, host, DNS, container communication
-│   ├── bridge-network/
-│   └── dns-resolution/
-├── 03-volumes/             # Persistence, bind mounts, state management
-│   └── persistence-demo/
-├── 04-compose/             # Multi-container orchestration
-│   ├── simple-stack/
-│   └── multi-service-app/
-├── 05-multi-service-systems/  # End-to-end: API + DB + proxy
-│   └── api-db-nginx/
-├── 06-security/            # User permissions, secrets, isolation
-│   ├── user-permissions/
-│   └── secrets-basics/
-└── 07-performance/         # Resource limits, stress testing
-    ├── resource-limits/
-    └── cpu-memory-stress/
+├── 00-basics/                # Container lifecycle, core CLI, image fundamentals
+│   ├── docker-run/           # 10 runtime flag exercises
+│   └── images-build/         # Annotated Dockerfile, minimal stdlib app
+│
+├── 01-images/                # Image creation, layering, and optimization
+│   ├── multistage/           # 4-stage build: base -> deps -> test -> final
+│   ├── distroless/           # Flask on distroless, no shell, minimal attack surface
+│   └── nginx-example/        # Static site via custom nginx config
 ```
+
+Modules 00 and 01 are complete. Modules 02-07 are planned.
 
 ---
 
-## Lab Structure
+## Prerequisites
 
-Every module follows the same pattern:
-
-```
-module/
-├── README.md       # concept, objective, architecture, expected output
-├── Dockerfile      # or docker-compose.yml
-├── src/            # application code if needed
-└── notes.md        # observations, failure cases, what you learned
-```
-
-Each README includes:
-1. Concept definition
-2. Minimal working example
-3. Extended real-world scenario
-4. Failure case or experiment
-5. Key takeaways
-
-No copy-paste tutorials. Everything is built and broken deliberately.
+- Docker Engine 24+ (BuildKit enabled by default)
+- `curl` for testing endpoints
 
 ---
 
-## How to Run a Lab
+## References
 
-```bash
-cd <module>
+**Core docs**
 
-# Image-based
-docker build -t lab-name .
-docker run --rm lab-name
+- [Docker Engine overview](https://docs.docker.com/engine/)
+- [Dockerfile reference](https://docs.docker.com/reference/dockerfile/)
+- [docker run reference](https://docs.docker.com/reference/cli/docker/container/run/)
+- [Docker Compose reference](https://docs.docker.com/reference/compose-file/)
 
-# Compose-based
-docker compose up
-docker compose down -v
-```
+**Images and builds**
 
----
+- [BuildKit overview](https://docs.docker.com/build/buildkit/)
+- [Multi-stage builds](https://docs.docker.com/build/building/multi-stage/)
+- [Build cache](https://docs.docker.com/build/cache/)
+- [OCI Image Spec](https://github.com/opencontainers/image-spec)
 
-## Progression Path
+**Networking**
 
-```
-00 → 01 → 02 → 03 → 04 → 05 → 06 → 07
-```
+- [Networking overview](https://docs.docker.com/engine/network/)
+- [Bridge networks](https://docs.docker.com/engine/network/drivers/bridge/)
 
-Do not skip modules. Each layer builds on the previous.
+**Storage**
 
----
+- [Volumes](https://docs.docker.com/engine/storage/volumes/)
+- [Bind mounts](https://docs.docker.com/engine/storage/bind-mounts/)
 
-## Goals
+**Security**
 
-This repository is maintained as part of a DevOps and Platform Engineering development path targeting:
+- [Docker security overview](https://docs.docker.com/engine/security/)
+- [Rootless mode](https://docs.docker.com/engine/security/rootless/)
+- [Seccomp profiles](https://docs.docker.com/engine/security/seccomp/)
 
-- Cloud-native infrastructure
-- Distributed systems design
-- Kubernetes readiness
-- Production-grade operational thinking
+**Runtime and performance**
 
----
-
-## License
-
-Apache License
+- [Resource constraints](https://docs.docker.com/engine/containers/resource_constraints/)
+- [Runtime metrics](https://docs.docker.com/engine/containers/runmetrics/)

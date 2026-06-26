@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build 00-basics/images-build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./00-basics/images-build
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build 01-images/multistage — test gate
+        uses: docker/build-push-action@v6
+        with:
+          context: ./01-images/multistage
+          target: test
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build 01-images/multistage — final
+        uses: docker/build-push-action@v6
+        with:
+          context: ./01-images/multistage
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build 01-images/distroless
+        uses: docker/build-push-action@v6
+        with:
+          context: ./01-images/distroless
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build 01-images/nginx-example
+        uses: docker/build-push-action@v6
+        with:
+          context: ./01-images/nginx-example
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

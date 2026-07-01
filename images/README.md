@@ -261,7 +261,7 @@ dive <image>                                   # interactive layer explorer
 ## Labs
 
 ```
-01-images/
+images/
 +-- multistage/               # Production-grade Python Flask image
 |   +-- Dockerfile            # 4-stage build: base -> deps -> test -> final
 |   +-- main.py               # Flask app: /health and / endpoints

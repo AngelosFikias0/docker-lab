@@ -28,17 +28,30 @@ Each folder is a conceptual layer. Work through them in order.
 
 ```
 Docker-Lab/
-├── 00-basics/                # Container lifecycle, core CLI, image fundamentals
-│   ├── docker-run/           # 10 runtime flag exercises
-│   └── images-build/         # Annotated Dockerfile, minimal stdlib app
+├── basics/               # Container lifecycle, core CLI, image fundamentals
+│   ├── docker-run/       # 10 runtime flag exercises
+│   └── images-build/     # Annotated Dockerfile, minimal stdlib app
 │
-├── 01-images/                # Image creation, layering, and optimization
-│   ├── multistage/           # 4-stage build: base -> deps -> test -> final
-│   ├── distroless/           # Flask on distroless, no shell, minimal attack surface
-│   └── nginx-example/        # Static site via custom nginx config
+├── images/               # Image creation, layering, and optimization
+│   ├── multistage/       # 4-stage build: base -> deps -> test -> final
+│   ├── distroless/       # Flask on distroless, no shell, minimal attack surface
+│   └── nginx-example/    # Static site via custom nginx config
+│
+├── image-inspection/     # Pulling images apart: history, inspect, save, dive
+│   └── layer-analysis/   # Hands-on inspection of real images
+│
+├── networks/             # Container networking: bridge, DNS, isolation
+│   ├── bridge-network/   # Default vs custom bridge
+│   └── dns-resolution/   # Embedded DNS, aliases, cross-network isolation
+│
+├── storage/              # (planned) Named volumes, bind mounts, tmpfs
+├── compose/              # (planned) Docker Compose, multi-service stacks
+├── multi-service/        # (planned) API + DB + reverse proxy
+├── security/             # (planned) Non-root, capabilities, secrets
+└── performance/          # (planned) Resource limits, cgroup constraints
 ```
 
-Modules 00 and 01 are complete. Modules 02-07 are planned.
+`basics`, `images`, `image-inspection`, and `networks` are complete. The rest are planned.
 
 ---
 

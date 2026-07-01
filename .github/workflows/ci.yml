@@ -16,43 +16,43 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build 00-basics/images-build
+      - name: Build basics/images-build
         uses: docker/build-push-action@v6
         with:
-          context: ./00-basics/images-build
+          context: ./basics/images-build
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build 01-images/multistage — test gate
+      - name: Build images/multistage (test gate)
         uses: docker/build-push-action@v6
         with:
-          context: ./01-images/multistage
+          context: ./images/multistage
           target: test
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build 01-images/multistage — final
+      - name: Build images/multistage (final)
         uses: docker/build-push-action@v6
         with:
-          context: ./01-images/multistage
+          context: ./images/multistage
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build 01-images/distroless
+      - name: Build images/distroless
         uses: docker/build-push-action@v6
         with:
-          context: ./01-images/distroless
+          context: ./images/distroless
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build 01-images/nginx-example
+      - name: Build images/nginx-example
         uses: docker/build-push-action@v6
         with:
-          context: ./01-images/nginx-example
+          context: ./images/nginx-example
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max

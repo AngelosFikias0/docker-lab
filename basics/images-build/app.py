@@ -1,8 +1,3 @@
-"""
-Minimal HTTP server - stdlib only, no pip install.
-Purpose: give the Dockerfile something real to build and run.
-"""
-
 import http.server
 import os
 

@@ -1,31 +1,29 @@
 # distroless
 
-A Flask app running on a distroless base image. Demonstrates the trade-off between attack surface, debuggability, and image size compared to slim or alpine.
+Flask app on `gcr.io/distroless/python3-debian12`. No shell, no package manager, no coreutils.
 
 ---
 
-## What is distroless
+## Base image comparison
 
-Distroless images (maintained by Google) contain only your application runtime. No shell, no package manager, no coreutils. Nothing you did not explicitly copy in.
-
-| Image                                | Shell | Pkg manager | Size  |
-| ------------------------------------ | ----- | ----------- | ----- |
+| Image                                | Shell | Pkg manager | Size   |
+| ------------------------------------ | ----- | ----------- | ------ |
 | `python:3.11`                        | yes   | yes         | ~1.1GB |
 | `python:3.11-slim`                   | yes   | yes         | ~200MB |
 | `python:3.11-alpine`                 | yes   | yes (apk)   | ~50MB  |
 | `gcr.io/distroless/python3-debian12` | no    | no          | ~55MB  |
 
-Size is similar to alpine, but the attack surface is smaller: fewer binaries, fewer vulnerabilities, nothing to exploit interactively if someone gets into the container.
+Size is comparable to alpine. Attack surface is smaller: fewer binaries, nothing to exploit interactively.
 
 ---
 
 ## Files
 
-| File              | Purpose                                |
-| ----------------- | -------------------------------------- |
-| `Dockerfile`      | 2-stage build: builder + distroless    |
-| `main.py`         | Flask app: `/health` and `/` endpoints |
-| `requirements.txt`| flask, gunicorn                        |
+| File               | Purpose                                |
+| ------------------ | -------------------------------------- |
+| `Dockerfile`       | 2-stage build: builder + distroless    |
+| `main.py`          | Flask app: `/health` and `/` endpoints |
+| `requirements.txt` | flask, gunicorn                        |
 
 ---
 
@@ -35,58 +33,43 @@ Size is similar to alpine, but the attack surface is smaller: fewer binaries, fe
 docker build -t distroless-example:latest .
 docker run --rm -p 8080:8080 distroless-example:latest
 curl localhost:8080/health
-curl localhost:8080/
 ```
 
 ---
 
 ## No shell
 
-The most immediate consequence of distroless is that `docker exec` into a shell does not work:
+`docker exec` into a shell does not work. There is no `/bin/sh`:
 
 ```bash
-# fails: no /bin/bash, no /bin/sh
-docker exec -it <container_id> /bin/bash
+docker exec -it <container_id> /bin/bash    # fails
 
-# use docker cp to pull files out for inspection instead
-docker cp <container_id>:/app/main.py ./main.py
+docker cp <container_id>:/app/main.py ./main.py    # extract files instead
 ```
 
-## Debugging
-
-Google ships a `:debug` variant that adds a busybox shell for exactly this case:
+Google ships a `:debug` variant with busybox. The builder stage is usually faster for debugging:
 
 ```bash
-# Build against the debug base manually to get a shell
-docker run --rm -it \
-  --entrypoint /busybox/sh \
-  gcr.io/distroless/python3-debian12:debug
-
-# Or debug at the builder stage (full slim image, all tools available)
 docker build --target builder -t distroless-example:builder .
 docker run --rm -it distroless-example:builder /bin/bash
 ```
 
-The builder stage approach is usually faster in practice.
+---
+
+## Notes
+
+**pip --target**: packages land in `/app/packages`, not system site-packages. Makes `COPY --from=builder` explicit and predictable.
+
+**PYTHONPATH**: required when using `pip --target`. Without it, `import flask` fails even though flask is on disk.
+
+**Exec form only**: no `/bin/sh`, so `ENTRYPOINT`, `CMD`, and `HEALTHCHECK` must all use `["..."]` form.
+
+**python3 -m gunicorn**: invokes via `__main__` module, avoids needing the gunicorn binary on `PATH`.
 
 ---
 
-## Key patterns
+## slim vs alpine vs distroless
 
-**pip --target**: installs packages into a single directory (`/app/packages`) instead of the system site-packages. Makes `COPY --from=builder` clean and explicit.
-
-**PYTHONPATH**: tells Python where to find the packages installed with `--target`. Without it, `import flask` fails even though flask is on disk.
-
-**Exec form only**: distroless has no shell, so all `ENTRYPOINT`, `CMD`, and `HEALTHCHECK` must use exec form `["..."]`. Shell form silently fails because `/bin/sh` does not exist.
-
-**python3 -m gunicorn**: invokes gunicorn via its `__main__` module. Avoids needing the gunicorn binary on `PATH`, which matters when `PATH` is minimal or nonexistent.
-
----
-
-## Distroless vs slim vs alpine
-
-- **slim**: good default. Has a shell, so you can exec in. Larger attack surface.
-- **alpine**: smallest with a shell. Watch for glibc compatibility issues with some Python packages.
-- **distroless**: no shell, smallest attack surface. Harder to debug. Best for production when you have confidence in your image.
-
-Use distroless when security posture matters more than debugging convenience.
+- **slim**: has a shell, largest attack surface, easiest to debug
+- **alpine**: smallest with a shell, watch for glibc compatibility
+- **distroless**: no shell, smallest attack surface, hardest to debug

@@ -44,14 +44,17 @@ Docker-Lab/
 │   ├── bridge-network/   # Default vs custom bridge
 │   └── dns-resolution/   # Embedded DNS, aliases, cross-network isolation
 │
-├── storage/              # (planned) Named volumes, bind mounts, tmpfs
+├── storage/              # Named volumes, bind mounts, tmpfs, overlay2 internals
+│   ├── volumes/          # Volume lifecycle, persistence, backup, sharing
+│   └── bind-mounts/      # Config injection, dev workflow, tmpfs
+│
 ├── compose/              # (planned) Docker Compose, multi-service stacks
 ├── multi-service/        # (planned) API + DB + reverse proxy
 ├── security/             # (planned) Non-root, capabilities, secrets
 └── performance/          # (planned) Resource limits, cgroup constraints
 ```
 
-`basics`, `images`, `image-inspection`, and `networks` are complete. The rest are planned.
+`basics`, `images`, `image-inspection`, `networks`, and `storage` are complete. The rest are planned.
 
 ---
 
@@ -98,3 +101,7 @@ Docker-Lab/
 
 - [Resource constraints](https://docs.docker.com/engine/containers/resource_constraints/)
 - [Runtime metrics](https://docs.docker.com/engine/containers/runmetrics/)
+
+**Books**
+
+- _Docker: Up and Running_ - Karl Matthias, Sean P. Kane (O'Reilly)

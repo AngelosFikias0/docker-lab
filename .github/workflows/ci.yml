@@ -56,3 +56,11 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build storage/volumes
+        uses: docker/build-push-action@v6
+        with:
+          context: ./storage/volumes
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

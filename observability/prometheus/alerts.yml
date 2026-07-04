@@ -1,0 +1,37 @@
+groups:
+  - name: containers
+    rules:
+      - alert: ContainerHighCPUThrottling
+        expr: |
+          rate(container_cpu_cfs_throttled_periods_total{name!=""}[2m])
+          /
+          rate(container_cpu_cfs_periods_total{name!=""}[2m])
+          > 0.25
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} is CPU throttled"
+          description: "{{ $labels.name }} throttle ratio: {{ $value | humanizePercentage }}"
+
+      - alert: ContainerOOMKilled
+        expr: increase(container_oom_events_total{name!=""}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} was OOM killed"
+          description: "{{ $labels.name }} had {{ $value }} OOM kill(s) in the last 5 minutes"
+
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{name!=""}
+          /
+          container_spec_memory_limit_bytes{name!=""}
+          > 0.85
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} memory above 85%"
+          description: "{{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit"

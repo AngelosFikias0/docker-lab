@@ -33,6 +33,10 @@ docker-lab/
 │   ├── bridge-network/   # Default vs custom bridge, veth pairs, iptables
 │   └── dns-resolution/   # Embedded DNS at 127.0.0.11, aliases, isolation
 │
+├── observability/        # Metrics pipeline: cAdvisor + Prometheus + Grafana
+│   ├── prometheus/       # Scrape config, alert rules (OOM, throttle, memory)
+│   └── grafana/          # Auto-provisioned datasource and dashboard
+│
 ├── performance/          # Resource limits, cgroup internals, throttling, OOM
 │   ├── resource-limits/  # CPU caps, memory limits, I/O throttling, docker stats
 │   └── cpu-memory-stress/# Throttling observation, OOM trigger, share contention

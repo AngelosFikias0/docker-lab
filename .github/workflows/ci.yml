@@ -64,3 +64,11 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build performance/cpu-memory-stress
+        uses: docker/build-push-action@v6
+        with:
+          context: ./performance/cpu-memory-stress
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -16,12 +16,12 @@ Docker uses this to build images as ordered layers, and containers as that layer
 
 Default storage driver on Linux. Four roles:
 
-| Role     | Path                           | What it is                                               |
-| -------- | ------------------------------ | -------------------------------------------------------- |
-| lowerdir | image layers (colon-separated) | Read-only. Shared across all containers from this image  |
-| upperdir | `diff/`                        | Container's writable layer. All writes land here         |
-| workdir  | `work/`                        | Kernel scratch space for atomic copy-up. Do not touch    |
-| merged   | `merged/`                      | The unified view mounted into the container as `/`       |
+| Role     | Path                           | What it is                                              |
+| -------- | ------------------------------ | ------------------------------------------------------- |
+| lowerdir | image layers (colon-separated) | Read-only. Shared across all containers from this image |
+| upperdir | `diff/`                        | Container's writable layer. All writes land here        |
+| workdir  | `work/`                        | Kernel scratch space for atomic copy-up. Do not touch   |
+| merged   | `merged/`                      | The unified view mounted into the container as `/`      |
 
 ```
 /var/lib/docker/overlay2/<container-id>/
@@ -50,6 +50,7 @@ upperdir > lowerdir[N] > lowerdir[N-1] > ... > lowerdir[0]
 ```
 
 Lookup for `/etc/nginx.conf`:
+
 - Check `diff/` first, always, no exception
 - Found -> done. Never consults lowerdir
 - Not found -> fall through lowerdir stack top to bottom, first match wins
@@ -101,6 +102,7 @@ docker run -v /host/path:/container/path:ro myimage    # read-only
 ```
 
 Use cases:
+
 - Local dev: mount source code into a container for live reload without rebuilding
 - Config injection: override a config file at runtime without rebuilding the image
 - Data access: give a container read access to existing host data
@@ -117,6 +119,7 @@ docker run --mount type=tmpfs,destination=/app/cache,tmpfs-size=64m myimage
 ```
 
 Use for:
+
 - Secrets or credentials that must never touch disk
 - High-speed scratch space (faster than bind mounts or volumes)
 - Sensitive intermediate data (tokens, session keys, decrypted material)
@@ -125,24 +128,24 @@ Use for:
 
 ## Comparison
 
-|                             | Named Volume        | Bind Mount          | tmpfs               |
-| --------------------------- | ------------------- | ------------------- | ------------------- |
-| Managed by                  | Docker              | Host OS             | Kernel (RAM)        |
-| Persists after `docker rm`  | Yes                 | Yes (host file)     | No                  |
-| Survives container restart  | Yes                 | Yes                 | No                  |
-| Host path required          | No                  | Yes                 | No                  |
-| Portable between hosts      | With volume driver  | No                  | N/A                 |
-| Best for                    | Production data     | Local dev, config   | Secrets, temp cache |
+|                            | Named Volume       | Bind Mount        | tmpfs               |
+| -------------------------- | ------------------ | ----------------- | ------------------- |
+| Managed by                 | Docker             | Host OS           | Kernel (RAM)        |
+| Persists after `docker rm` | Yes                | Yes (host file)   | No                  |
+| Survives container restart | Yes                | Yes               | No                  |
+| Host path required         | No                 | Yes               | No                  |
+| Portable between hosts     | With volume driver | No                | N/A                 |
+| Best for                   | Production data    | Local dev, config | Secrets, temp cache |
 
 ---
 
 ## Storage Drivers
 
-| Driver           | OS               | Notes                                            |
-| ---------------- | ---------------- | ------------------------------------------------ |
-| `overlay2`       | Linux            | Default. Good performance. Requires kernel 4.0+  |
-| `fuse-overlayfs` | Linux (rootless) | Rootless Docker equivalent of overlay2           |
-| `vfs`            | Any              | No union FS. Full copy per layer. Testing only   |
+| Driver           | OS               | Notes                                           |
+| ---------------- | ---------------- | ----------------------------------------------- |
+| `overlay2`       | Linux            | Default. Good performance. Requires kernel 4.0+ |
+| `fuse-overlayfs` | Linux (rootless) | Rootless Docker equivalent of overlay2          |
+| `vfs`            | Any              | No union FS. Full copy per layer. Testing only  |
 
 ```bash
 docker info | grep -i "storage driver"
@@ -167,6 +170,57 @@ docker run --tmpfs /path image                      # tmpfs
 docker inspect <container> --format '{{ json .Mounts }}'       # active mounts
 docker inspect <container> | jq '.[0].GraphDriver.Data'        # overlay2 paths
 ```
+
+---
+
+## Kubernetes Mapping
+
+The same primitives exist in Kubernetes, just with different names and a declarative API.
+
+| Docker                        | Kubernetes                                       |
+| ----------------------------- | ------------------------------------------------ |
+| Named volume                  | `PersistentVolume` + `PersistentVolumeClaim`     |
+| Volume driver (EBS, NFS, etc) | `StorageClass` (provisions PVs dynamically)      |
+| `docker run -v name:/path`    | `volumes` + `volumeMounts` in the Pod spec       |
+| Bind mount                    | `hostPath` volume (avoid in production)          |
+| tmpfs mount                   | `emptyDir` with `medium: Memory`                 |
+| `VOLUME` instruction          | Ignored by Kubernetes — use volumeMounts instead |
+| `docker volume prune`         | `kubectl delete pvc <name>`                      |
+
+**PersistentVolume lifecycle in k8s:**
+
+```
+StorageClass -> PVC (claim) -> PV (actual disk) -> Pod mounts it
+```
+
+A `PVC` is the workload's request ("I need 10Gi, ReadWriteOnce"). The `StorageClass` fulfills it by provisioning the actual disk (EBS, GCE PD, Ceph, etc.) and binding a `PV` to it. The Pod mounts the PVC — it never references the underlying disk directly.
+
+```yaml
+# Pod volumeMount: equivalent of docker run -v mydata:/app/data
+volumes:
+  - name: app-data
+    persistentVolumeClaim:
+      claimName: mydata-pvc
+containers:
+  - name: app
+    volumeMounts:
+      - name: app-data
+        mountPath: /app/data
+
+# tmpfs: equivalent of docker run --tmpfs /app/cache
+volumes:
+  - name: cache
+    emptyDir:
+      medium: Memory
+      sizeLimit: 64Mi
+containers:
+  - name: app
+    volumeMounts:
+      - name: cache
+        mountPath: /app/cache
+```
+
+overlay2 is still the container storage driver on each node — kubelet uses containerd which uses the same overlay2 mechanics underneath every pod.
 
 ---
 

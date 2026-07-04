@@ -160,22 +160,91 @@ Docker translates `docker run` flags directly into cgroup file writes. runc crea
 
 ## Kubernetes Mapping
 
-| Docker flag            | Kubernetes field              | Mechanism                    |
+The same cgroup primitives, different API surface. Docker flags map directly to k8s resource fields — kubelet writes the same cgroup files underneath.
+
+### requests vs limits
+
+| Concept    | Docker equivalent      | What it controls                                   |
+| ---------- | ---------------------- | -------------------------------------------------- |
+| `requests` | `--cpu-shares`         | Scheduling — how much the node reserves for the pod|
+| `limits`   | `--cpus` / `--memory`  | Enforcement — cgroup hard cap, OOM kill boundary   |
+
+`requests` determines where the pod lands (scheduler uses it for bin-packing). `limits` determines what happens at runtime (kernel enforces via cgroup). A pod with no `limits` is uncapped — it can starve its neighbors.
+
+```yaml
+resources:
+  requests:
+    cpu: "250m"       # reserve 0.25 CPU on the node
+    memory: "128Mi"   # reserve 128MB for scheduling
+  limits:
+    cpu: "1"          # hard cap: 1 full CPU (throttled if exceeded)
+    memory: "256Mi"   # hard cap: OOM kill if exceeded
+```
+
+CPU is expressed in millicores (`m`): `500m` = 0.5 CPU = `--cpus=0.5`.
+
+### Flags to fields
+
+| Docker flag            | Kubernetes field              | Cgroup file                  |
 | ---------------------- | ----------------------------- | ---------------------------- |
 | `--cpus`               | `resources.limits.cpu`        | `cpu.cfs_quota_us`           |
-| `--cpu-shares`         | `resources.requests.cpu`      | `cpu.shares` (scheduling)    |
+| `--cpu-shares`         | `resources.requests.cpu`      | `cpu.shares`                 |
 | `--memory`             | `resources.limits.memory`     | `memory.limit_in_bytes`      |
-| `--memory-reservation` | `resources.requests.memory`   | soft hint for scheduler      |
+| `--memory-reservation` | `resources.requests.memory`   | soft scheduling hint         |
+| `--cpuset-cpus`        | `resources.limits.cpu` (node-level via topology manager) | `cpuset.cpus` |
 
-**QoS classes** (assigned automatically by Kubernetes):
+### QoS classes
 
-| Class        | Condition                                  | OOM priority  |
-| ------------ | ------------------------------------------ | ------------- |
-| `Guaranteed` | requests == limits for every container     | Last killed   |
-| `Burstable`  | requests < limits, or only requests set    | Middle        |
-| `BestEffort` | no requests or limits set                  | First killed  |
+Kubernetes assigns a QoS class automatically based on how requests and limits are configured. This determines OOM kill priority and eviction order when the node is under pressure.
 
-Always set both `requests` and `limits`. `BestEffort` pods are the first to be evicted under node pressure.
+| Class        | Condition                                      | OOM / eviction priority |
+| ------------ | ---------------------------------------------- | ----------------------- |
+| `Guaranteed` | requests == limits for every container in pod  | Last                    |
+| `Burstable`  | requests < limits, or only requests set        | Middle                  |
+| `BestEffort` | no requests or limits set anywhere             | First                   |
+
+```bash
+kubectl get pod <name> -o jsonpath='{.status.qosClass}'
+```
+
+`Guaranteed` is what you want for production workloads. It means the pod gets exactly what it asks for and is the last to be evicted if the node runs out of memory.
+
+### CPU throttling in k8s
+
+The same CFS throttling that happens with `--cpus` happens with `resources.limits.cpu`. A pod limited to `500m` will be throttled when it tries to use more than 50ms of CPU per 100ms period. This is a common source of latency in k8s that doesn't show up in CPU% metrics.
+
+```bash
+# Check throttling on a running pod
+kubectl exec <pod> -- cat /sys/fs/cgroup/cpu/cpu.stat
+# or on the node directly
+cat /sys/fs/cgroup/kubepods/<qos>/<pod-uid>/cpu.throttled_time
+```
+
+High `throttled_time` with low CPU% = your limit is too tight.
+
+### LimitRange and ResourceQuota
+
+| Object          | Scope     | Purpose                                              |
+| --------------- | --------- | ---------------------------------------------------- |
+| `LimitRange`    | Namespace | Sets default requests/limits when none are specified |
+| `ResourceQuota` | Namespace | Caps total CPU/memory across all pods in a namespace |
+
+```yaml
+# LimitRange: auto-apply defaults so no pod runs as BestEffort
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+```
 
 ---
 

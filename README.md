@@ -12,7 +12,36 @@ docker-lab/
 │   ├── docker-run/       # 10 runtime flag exercises
 │   └── images-build/     # Annotated Dockerfile, minimal stdlib app
 │
+├── images/               # Image creation, layering, and optimization
+│   ├── multistage/       # 4-stage build: base -> deps -> test -> final
+│   ├── distroless/       # Flask on distroless, no shell, minimal attack surface
+│   └── nginx-example/    # Static site via custom nginx config
+│
+├── image-inspection/     # Pulling images apart: history, inspect, save, dive
+│   └── layer-analysis/   # Hands-on inspection of real images
+│
+├── networks/             # Container networking: bridge, DNS, isolation
+│   ├── bridge-network/   # Default vs custom bridge, veth pairs, iptables
+│   └── dns-resolution/   # Embedded DNS at 127.0.0.11, aliases, isolation
+│
+├── storage/              # Persistent data: volumes, bind mounts, tmpfs, overlay2
+│   ├── volumes/          # Named volume lifecycle, persistence, backup, sharing
+│   └── bind-mounts/      # Config injection, dev workflow, tmpfs
+│
+├── performance/          # Resource limits, cgroup internals, throttling, OOM
+│   ├── resource-limits/  # CPU caps, memory limits, I/O throttling, docker stats
+│   └── cpu-memory-stress/# Throttling observation, OOM trigger, share contention
+│
+├── security/             # Non-root, capabilities, secrets, distroless hardening
+│   ├── user-permissions/ # UID mapping, cap-drop, read-only filesystem
+│   ├── secrets-basics/   # Secret injection patterns, BuildKit mounts
+│   └── distroless/       # Attack surface comparison, no-shell debugging
+│
 ├── compose/              # (planned) Docker Compose, multi-service stacks
+│
+├── observability/        # Metrics pipeline: cAdvisor + Prometheus + Grafana
+│   ├── prometheus/       # Scrape config, alert rules (OOM, throttle, memory)
+│   └── grafana/          # Auto-provisioned datasource and dashboard
 │
 ├── docs/                 # Reference notes on internals and theory
 │   ├── linux-basics.md   # Processes, namespaces, cgroups, syscalls
@@ -21,39 +50,14 @@ docker-lab/
 │   ├── networking.md     # Bridge, veth, DNS, NAT, overlay, k8s mapping
 │   └── operations.md     # Container management, restart policies, cleanup
 │
-├── image-inspection/     # Pulling images apart: history, inspect, save, dive
-│   └── layer-analysis/   # Hands-on inspection of real images
-│
-├── images/               # Image creation, layering, and optimization
-│   ├── multistage/       # 4-stage build: base -> deps -> test -> final
-│   ├── distroless/       # Flask on distroless, no shell, minimal attack surface
-│   └── nginx-example/    # Static site via custom nginx config
-│
-├── networks/             # Container networking: bridge, DNS, isolation
-│   ├── bridge-network/   # Default vs custom bridge, veth pairs, iptables
-│   └── dns-resolution/   # Embedded DNS at 127.0.0.11, aliases, isolation
-│
-├── observability/        # Metrics pipeline: cAdvisor + Prometheus + Grafana
-│   ├── prometheus/       # Scrape config, alert rules (OOM, throttle, memory)
-│   └── grafana/          # Auto-provisioned datasource and dashboard
-│
-├── performance/          # Resource limits, cgroup internals, throttling, OOM
-│   ├── resource-limits/  # CPU caps, memory limits, I/O throttling, docker stats
-│   └── cpu-memory-stress/# Throttling observation, OOM trigger, share contention
-│
-├── security/             # (planned) Non-root, capabilities, secrets
-│
-├── storage/              # Persistent data: volumes, bind mounts, tmpfs, overlay2
-│   ├── volumes/          # Named volume lifecycle, persistence, backup, sharing
-│   └── bind-mounts/      # Config injection, dev workflow, tmpfs
-│
 └── use-cases/            # Problem-solution reference by scenario
     ├── debugging.md      # Container exits, OOM, network issues, no-shell images
     ├── build-optimization.md  # Layer ordering, cache mounts, multi-stage, .dockerignore
     ├── web-app-stack.md  # Reverse proxy + backend + DB, health checks, restart policy
     ├── ci-cd.md          # DinD vs socket, registry cache, multi-arch, tagging
     ├── zero-downtime.md  # Graceful shutdown, health checks, blue-green, canary
-    └── secrets.md        # Env vars, mounted files, Docker secrets, Vault, k8s
+    ├── secrets.md        # Env vars, mounted files, Docker secrets, Vault, k8s
+    └── tini.md           # PID 1 problem, signal forwarding, zombie reaping
 ```
 
 ---

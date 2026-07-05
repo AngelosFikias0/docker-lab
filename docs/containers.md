@@ -101,6 +101,39 @@ In Kubernetes, this is abstracted: kubelet + CoreDNS manage pod DNS. The equival
 
 ---
 
+## Container Data on Disk
+
+Every running or stopped container has a dedicated directory on the host:
+
+```
+/var/lib/docker/containers/<full-container-id>/
+  config.v2.json    # full container config (image, env, mounts, network)
+  hostconfig.json   # runtime config (--cpus, --memory, restart policy)
+  <id>-json.log     # stdout/stderr log file (json-file driver)
+```
+
+This is what `docker inspect` reads. The log file here is what `docker logs` tails. With the `local` log driver, the format is binary instead of JSON.
+
+```bash
+ls /var/lib/docker/containers/
+cat /var/lib/docker/containers/<id>/config.v2.json | jq .Config
+```
+
+---
+
+## docker container top — UID Gotcha
+
+`docker container top <name>` resolves usernames via the **host's** `/etc/passwd`, not the container's. A UID that maps to `appuser` inside the container may display as a different name or a raw number on the host depending on what UID mappings exist there.
+
+```bash
+docker container top <container>    # shown via host /etc/passwd — may be wrong name
+docker exec <container> id          # shown via container /etc/passwd — always correct
+```
+
+Never trust the display name from `docker container top` for security reasoning — verify the numeric UID with `docker exec`.
+
+---
+
 ## crictl
 
 `crictl` is a CLI for runtimes that implement the Kubernetes CRI (Container Runtime Interface). It targets `containerd` and `CRI-O` at the node level. Not a Docker tool.

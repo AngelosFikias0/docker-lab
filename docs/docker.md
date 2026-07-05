@@ -65,6 +65,26 @@ Changes take effect after `systemctl reload docker` (soft reload) or `systemctl 
 
 ---
 
+## Docker Events
+
+The Docker daemon has an internal event broadcaster. Every subsystem that mutates state — container lifecycle manager, network manager, image puller, volume manager — fires an event synchronously as part of that state transition. `docker system events` is a subscriber to that stream.
+
+```bash
+docker system events                                        # all events, live stream
+docker system events --filter type=container               # container events only
+docker system events --filter type=container \
+  --filter event=die                                        # catch unexpected exits
+docker system events --since 10m                           # last 10 minutes
+```
+
+**Event types:** `container` (start, stop, die, kill, pause), `network` (connect, disconnect), `image` (pull, push, delete), `volume` (create, mount, unmount, destroy).
+
+Each event carries the object ID, timestamp, and relevant attributes. Useful for debugging race conditions, unexpected exits, or wiring automation without polling `docker inspect` in a loop.
+
+**Kubernetes equivalent:** `kubectl get events --watch` surfaces the same idea at the cluster level — kubelet, scheduler, and controllers emit events on every state change.
+
+---
+
 ## Image Distribution
 
 Images are stored as OCI-compliant tarballs in a registry. The pull process:

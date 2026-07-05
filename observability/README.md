@@ -38,6 +38,14 @@ cAdvisor reads the same cgroup files inspected manually in the performance modul
 
 It also reads the Docker socket to map cgroup IDs to container names and labels. The result is a `/metrics` endpoint in Prometheus exposition format that Prometheus scrapes on every `scrape_interval`.
 
+**Internal pipeline:**
+
+1. **Discovery** — watches the container runtime (via Docker socket / containerd) for running containers. Auto-detects new containers as they start and stop with no manual registration.
+2. **Collection** — reads directly from `/sys/fs/cgroup/` for CPU, memory, network, and disk I/O. Polls at short intervals (default ~1s, tunable in the Kubernetes kubelet context).
+3. **Metrics captured** — CPU usage + throttling + per-core breakdown; memory working set, RSS, cache, page faults; filesystem usage + I/O rates; network rx/tx bytes, errors, drops.
+4. **Aggregation** — rolls up container-level stats to pod-level in the Kubernetes context. Maintains a short in-memory time-series window — long-term storage is Prometheus's job, not cAdvisor's.
+5. **Exposure** — `/metrics` in Prometheus format, `/api/v1/...` REST API. In Kubernetes, kubelet embeds cAdvisor and exposes it at `/metrics/cadvisor` on port 10250.
+
 ---
 
 ## Prometheus
@@ -109,6 +117,85 @@ Auto-provisioned at startup. Six panels:
 | Network I/O | rx + tx bytes/sec per container |
 
 The throttle ratio panel has a red threshold line at 25% — the same value the `ContainerHighCPUThrottling` alert uses.
+
+---
+
+## Prometheus Service Discovery
+
+Static targets in `prometheus.yml` work for this lab but don't scale. In production Kubernetes, Prometheus uses dynamic service discovery to find targets automatically.
+
+```yaml
+scrape_configs:
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      # only scrape pods that opt in with this annotation
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      # use the annotated port instead of the default
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)
+        replacement: $1
+```
+
+Pods annotate themselves with `prometheus.io/scrape: "true"` and `prometheus.io/port: "9090"`. Prometheus's relabeling picks them up automatically on every scrape cycle. No manual target list, no config change per deploy.
+
+**Relabeling** is the filter/transform step between raw discovery output (noisy — every pod, every port) and what actually gets scraped. `source_labels`, `action: keep/drop/replace`, and `regex` are the building blocks.
+
+**Storage** — scraped samples land in the local TSDB (2-hour blocks, compacted, WAL for crash recovery). For long-term storage and multi-cluster global query, Prometheus remote-writes to Thanos, Cortex, or Mimir.
+
+---
+
+## Grafana — Advanced
+
+**Dashboard variables** — templated PromQL using `label_values()` queries against Prometheus build dropdown filters for namespace, pod, job, etc. Critical for multi-tenant dashboards — hardcoding a container name in PromQL means the dashboard is useless for everything else.
+
+**Two alerting paths:**
+
+| Path | Where rules live | Who routes |
+| ---- | ---------------- | ---------- |
+| Prometheus + Alertmanager | `alerts.yml` in Prometheus | Alertmanager (dedup, silence, route to Slack/PD/email) |
+| Grafana-native alerting | Inside Grafana | Grafana contact points |
+
+Prometheus + Alertmanager is the standard for production. Grafana-native alerting (post-Grafana 8) is useful when you want a single alerting UI across multiple data sources, not just Prometheus.
+
+---
+
+## node_exporter
+
+cAdvisor reports container-level metrics. Neither cAdvisor nor `kube-state-metrics` touches the OS layer. Node-level data (CPU load, disk I/O, memory pressure, network interface stats) requires `node_exporter`.
+
+**What it does:** runs as a daemon on every node, reads `/proc` and `/sys` directly, exposes CPU, memory, disk I/O, network, filesystem, and load average as Prometheus-format metrics on port 9100.
+
+**Kubernetes deployment:** DaemonSet — one pod per node with `hostNetwork: true` and read-only `/proc` and `/sys` mounts from the host:
+
+```yaml
+volumes:
+  - name: proc
+    hostPath: { path: /proc }
+  - name: sys
+    hostPath: { path: /sys }
+```
+
+Without these host mounts, node_exporter reads the container's cgroup view, not the node's — wrong data entirely.
+
+**Exceptions that need more than proc/sys:**
+- Filesystem collector — calls `statfs()` syscall against each mount point, needs broader host filesystem visibility.
+- Textfile collector — reads `.prom` files from a custom directory; used to inject metrics from cron jobs or batch scripts.
+- Systemd collector — talks to systemd over D-Bus, not proc/sys at all.
+
+---
+
+## Common Pitfalls
+
+- **Static config in Kubernetes** — hand-editing target lists per deploy doesn't scale. Use `kubernetes_sd_config` + relabeling.
+- **Label cardinality explosions** — high-cardinality labels (request IDs, user IDs as labels) create one time series per unique value. Directly hits Prometheus memory and query latency. Watch `__name__` and label count.
+- **Grafana as a data store** — Grafana renders. If Prometheus is down, dashboards are empty. Grafana has no historical data of its own.
+- **scrape_timeout >= scrape_interval** — causes overlapping scrapes on slow targets. `scrape_timeout` must always be less than `scrape_interval`.
 
 ---
 

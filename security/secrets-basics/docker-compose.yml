@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    secrets:
+      - api_key
+    # Secret is mounted at /run/secrets/api_key inside the container.
+    # It never appears in environment variables, docker inspect, or image layers.
+
+secrets:
+  api_key:
+    file: ./secrets/api_key.txt

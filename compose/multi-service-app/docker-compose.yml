@@ -24,8 +24,6 @@ services:
     build: ./app
     command: ["python", "worker.py"]
     env_file: .env
-    environment:
-      - WORKER_ID={{.Task.Slot}}
     networks:
       - backend
     depends_on:

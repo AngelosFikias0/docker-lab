@@ -7,8 +7,69 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose files
+        run: |
+          docker compose -f compose/simple-stack/docker-compose.yml config --quiet
+          docker compose -f compose/api-db-nginx/docker-compose.yml config --quiet
+          docker compose -f compose/multi-service-app/docker-compose.yml config --quiet
+          docker compose -f observability/docker-compose.yml config --quiet
+
+      - name: Validate shell scripts (syntax check)
+        run: find . -name "exercises.sh" -exec bash -n {} \; -print
+
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: basics/images-build
+            context: ./basics/images-build
+
+          - name: images/multistage (test gate)
+            context: ./images/multistage
+            target: test
+
+          - name: images/multistage (final)
+            context: ./images/multistage
+
+          - name: images/distroless
+            context: ./images/distroless
+
+          - name: images/nginx-example
+            context: ./images/nginx-example
+
+          - name: storage/volumes
+            context: ./storage/volumes
+
+          - name: performance/cpu-memory-stress
+            context: ./performance/cpu-memory-stress
+
+          - name: security/user-permissions
+            context: ./security/user-permissions
+
+          - name: security/distroless
+            context: ./security/distroless
+
+          - name: security/secrets-basics
+            context: ./security/secrets-basics
+
+          - name: compose/simple-stack
+            context: ./compose/simple-stack/app
+
+          - name: compose/multi-service-app
+            context: ./compose/multi-service-app/app
+
+          - name: compose/api-db-nginx
+            context: ./compose/api-db-nginx/app
 
     steps:
       - uses: actions/checkout@v4
@@ -16,59 +77,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build basics/images-build
+      - name: Build ${{ matrix.name }}
         uses: docker/build-push-action@v6
         with:
-          context: ./basics/images-build
+          context: ${{ matrix.context }}
+          target: ${{ matrix.target }}
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build images/multistage (test gate)
-        uses: docker/build-push-action@v6
-        with:
-          context: ./images/multistage
-          target: test
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build images/multistage (final)
-        uses: docker/build-push-action@v6
-        with:
-          context: ./images/multistage
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build images/distroless
-        uses: docker/build-push-action@v6
-        with:
-          context: ./images/distroless
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build images/nginx-example
-        uses: docker/build-push-action@v6
-        with:
-          context: ./images/nginx-example
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build storage/volumes
-        uses: docker/build-push-action@v6
-        with:
-          context: ./storage/volumes
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build performance/cpu-memory-stress
-        uses: docker/build-push-action@v6
-        with:
-          context: ./performance/cpu-memory-stress
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max

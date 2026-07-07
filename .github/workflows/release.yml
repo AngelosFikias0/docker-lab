@@ -57,6 +57,12 @@ jobs:
           git tag "${{ steps.next.outputs.tag }}"
           git push origin "${{ steps.next.outputs.tag }}"
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "value=ghcr.io/${OWNER}/docker-lab-api:latest,ghcr.io/${OWNER}/docker-lab-api:${{ steps.next.outputs.tag }}" >> "$GITHUB_OUTPUT"
+
       - name: Log in to ghcr.io
         uses: docker/login-action@v3
         with:
@@ -72,9 +78,7 @@ jobs:
         with:
           context: compose/api-db-nginx/app
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/docker-lab-api:latest
-            ghcr.io/${{ github.repository_owner }}/docker-lab-api:${{ steps.next.outputs.tag }}
+          tags: ${{ steps.tags.outputs.value }}
           cache-from: type=gha,scope=compose/api-db-nginx
           cache-to: type=gha,scope=compose/api-db-nginx,mode=max
 

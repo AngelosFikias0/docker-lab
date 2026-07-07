@@ -37,7 +37,10 @@ docker-lab/
 │   ├── secrets-basics/   # Secret injection patterns, BuildKit mounts
 │   └── distroless/       # Attack surface comparison, no-shell debugging
 │
-├── compose/              # (planned) Docker Compose, multi-service stacks
+├── compose/              # Docker Compose: declarative multi-container stacks
+│   ├── simple-stack/     # Flask + Redis, core Compose concepts and CLI
+│   ├── api-db-nginx/     # Spring Boot + PostgreSQL + nginx reverse proxy
+│   └── multi-service-app/# Web + worker + Redis, scaling, profiles, env_file
 │
 ├── observability/        # Metrics pipeline: cAdvisor + Prometheus + Grafana
 │   ├── prometheus/       # Scrape config, alert rules (OOM, throttle, memory)

@@ -1,0 +1,61 @@
+services:
+  web:
+    build: ./app
+    container_name: multi-web
+    command: ["python", "web.py"]
+    ports:
+      - "5000:5000"
+    env_file: .env
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  worker:
+    build: ./app
+    command: ["python", "worker.py"]
+    env_file: .env
+    environment:
+      - WORKER_ID={{.Task.Slot}}
+    networks:
+      - backend
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # scale with: docker compose up -d --scale worker=3
+
+  redis:
+    image: redis:7-alpine
+    container_name: multi-redis
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 3
+
+  # debug profile — only starts with: docker compose --profile debug up
+  redis-ui:
+    image: redislabs/redisinsight:latest
+    profiles: [debug]
+    ports:
+      - "8001:5540"
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

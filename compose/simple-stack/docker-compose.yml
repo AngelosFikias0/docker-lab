@@ -1,0 +1,25 @@
+services:
+  web:
+    build: ./app
+    container_name: simple-web
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_HOST=redis
+    networks:
+      - app-net
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: simple-redis
+    networks:
+      - app-net
+    restart: unless-stopped
+
+networks:
+  app-net:
+    driver: bridge

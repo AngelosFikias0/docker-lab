@@ -51,7 +51,8 @@ docker-lab/
 │   ├── containers.md     # Fundamentals, history, lifecycle, identity files
 │   ├── docker.md         # Architecture, logging, signals, health checks, k8s integration
 │   ├── networking.md     # Bridge, veth, DNS, NAT, overlay, k8s mapping
-│   └── operations.md     # Container management, restart policies, cleanup
+│   ├── operations.md     # Container management, restart policies, cleanup
+│   └── ci-cd.md          # GitHub Actions internals, GHA cache, ghcr.io, release flow
 │
 └── use-cases/            # Problem-solution reference by scenario
     ├── debugging.md      # Container exits, OOM, network issues, no-shell images
@@ -62,6 +63,28 @@ docker-lab/
     ├── secrets.md        # Env vars, mounted files, Docker secrets, Vault, k8s
     └── tini.md           # PID 1 problem, signal forwarding, zombie reaping
 ```
+
+---
+
+## CI/CD
+
+Two workflows in `.github/workflows/`:
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `ci.yml` | push / PR to `main` | Validates all Compose files and shell scripts, then builds all 13 Dockerfiles in parallel. Pushes `simple-stack`, `multi-service-app`, and `api` images to ghcr.io on merges to main. |
+| `release.yml` | manual (`workflow_dispatch`) | Bumps semver tag (patch / minor / major), builds and pushes a versioned API image to ghcr.io, creates a GitHub release with auto-generated notes. |
+
+Published images:
+
+```
+ghcr.io/angelosfikias0/docker-lab-api:latest
+ghcr.io/angelosfikias0/docker-lab-api:v0.1.0
+ghcr.io/angelosfikias0/docker-lab-simple-stack:latest
+ghcr.io/angelosfikias0/docker-lab-multi-service-app:latest
+```
+
+See [`docs/ci-cd.md`](docs/ci-cd.md) for internals: GHA job model, matrix strategy, BuildKit GHA cache, GITHUB_TOKEN permissions, ghcr.io publishing, and the release version arithmetic.
 
 ---
 

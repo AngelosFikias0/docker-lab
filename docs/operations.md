@@ -4,6 +4,51 @@ Container management commands and cleanup procedures.
 
 ---
 
+## Production container lifecycle
+
+The path from code to running container in production:
+
+```
+1. Build and test locally
+   docker build + docker run on dev machine
+   Verifies the image works before committing
+
+2. CI builds the official image
+   Triggered by git push, produces a deterministic image from clean state
+   Runs tests inside the build (test stage) or as a separate job
+
+3. Push to registry
+   docker push ghcr.io/org/image:sha or :v1.2.3
+   Registry is the handoff point between build and runtime
+
+4. Deploy to server/orchestrator
+   docker run, docker compose up, or kubectl apply
+   Runtime pulls the image from the registry and starts the container
+
+5. Orchestrate at scale
+   Health checks, restart policies, rolling updates, resource limits
+   In production this is Kubernetes or Docker Swarm, not bare docker run
+```
+
+Docker's role across this lifecycle:
+
+| Concern | Docker mechanism |
+|---|---|
+| Isolation | namespaces (pid, net, mnt, uts, ipc, user) |
+| Resource limits | cgroups v2 (CPU, memory, I/O) |
+| Networking | bridge/overlay drivers, embedded DNS, port mapping |
+| Configuration | env vars, mounted config files, secrets |
+| Packaging | image layers, OCI spec, registry distribution |
+| Logging | log drivers (json-file, journald, fluentd, awslogs) |
+| Health | HEALTHCHECK instruction, `--health-*` flags |
+| Scheduling | restart policies locally; Kubernetes / Swarm at scale |
+| Service discovery | embedded DNS (Compose); CoreDNS / Consul in production |
+| Load balancing | iptables DNAT (single host); kube-proxy / IPVS / eBPF in k8s |
+| Orchestration | Docker Compose (single host); Kubernetes (multi-host) |
+| Distributed deployment | blue-green and canary via orchestrator; multiple CRI runtimes (containerd, CRI-O) |
+
+---
+
 ## Container Management
 
 ```bash

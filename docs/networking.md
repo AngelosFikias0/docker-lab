@@ -106,3 +106,38 @@ nsenter -t $(docker inspect -f '{{.State.Pid}}' c1) -n ip addr     # inspect con
 ```
 
 `ip netns list` won't show container netns because Docker doesn't register them under `/var/run/netns`. Use `nsenter` against the container's PID instead.
+
+---
+
+## Service Discovery
+
+Containers need to find each other by name, not IP. IPs are ephemeral — every `docker run` gets a new one.
+
+### Docker's embedded DNS
+
+Docker's resolver at `127.0.0.11:53` handles name resolution inside user-defined networks. A container on `mynet` resolves `other-container` by name automatically. This is the same model CoreDNS uses in Kubernetes, just scoped to a single host.
+
+### Production service discovery options
+
+| Tool | Model | Used in |
+|---|---|---|
+| Docker embedded DNS | Container name → IP, per bridge network | Docker / Compose |
+| CoreDNS | DNS-based, synced from etcd / k8s API | Kubernetes |
+| Consul | DNS + HTTP API, health-check aware | Multi-DC, bare metal |
+| etcd | Key-value store; service registry built on top | Kubernetes control plane |
+| Zookeeper | Distributed coordination, ZNode-based registry | Kafka, older Hadoop stacks |
+
+CoreDNS replaced kube-dns in Kubernetes 1.13. It reads Service and Endpoint objects from the API server and serves `<service>.<namespace>.svc.cluster.local` records.
+
+### Load balancing relationship
+
+Service discovery tells you where instances are. Load balancing distributes traffic across them:
+
+```
+Client → DNS lookup (CoreDNS / Consul)
+           → returns VIP or list of IPs
+       → connects to VIP
+           → iptables / IPVS / eBPF routes to a healthy pod
+```
+
+In Kubernetes, a Service's ClusterIP is the VIP. `kube-proxy` (or Cilium's eBPF replacement) maintains the forwarding rules that map VIP → pod IPs.

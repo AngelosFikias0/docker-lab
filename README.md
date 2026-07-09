@@ -13,7 +13,7 @@ docker-lab/
 │   └── images-build/     # Annotated Dockerfile, minimal stdlib app
 │
 ├── images/               # Image creation, layering, and optimization
-│   ├── multistage/       # 4-stage build: base -> deps -> test -> final
+│   ├── multistage/       # 4-stage build: base -> deps -> test -> final; multi-arch exercises
 │   ├── distroless/       # Flask on distroless, no shell, minimal attack surface
 │   └── nginx-example/    # Static site via custom nginx config
 │
@@ -45,6 +45,8 @@ docker-lab/
 ├── observability/        # Metrics pipeline: cAdvisor + Prometheus + Grafana
 │   ├── prometheus/       # Scrape config, alert rules (OOM, throttle, memory)
 │   └── grafana/          # Auto-provisioned datasource and dashboard
+│
+├── private-registry/     # Local registry:2 + UI, pull-through cache, v2 API exercises
 │
 ├── docs/                 # Reference notes on internals and theory
 │   ├── linux-basics.md   # Processes, namespaces, cgroups, syscalls

@@ -1,0 +1,30 @@
+services:
+  registry:
+    image: registry:2
+    container_name: local-registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    environment:
+      # pull-through cache — comment out to use as plain push/pull store
+      REGISTRY_PROXY_REMOTEURL: ""
+
+  registry-ui:
+    image: joxit/docker-registry-ui:latest
+    container_name: registry-ui
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      SINGLE_REGISTRY: "true"
+      REGISTRY_URL: http://registry:5000
+      REGISTRY_TITLE: Local Registry
+      DELETE_IMAGES: "true"
+      SHOW_CONTENT_DIGEST: "true"
+    depends_on:
+      - registry
+
+volumes:
+  registry-data:

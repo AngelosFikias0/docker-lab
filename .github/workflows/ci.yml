@@ -19,6 +19,7 @@ jobs:
           docker compose -f compose/api-db-nginx/docker-compose.yml config --quiet
           docker compose -f compose/multi-service-app/docker-compose.yml config --quiet
           docker compose -f observability/docker-compose.yml config --quiet
+          docker compose -f private-registry/docker-compose.yml config --quiet
 
       - name: Validate shell scripts (syntax check)
         run: find . -name "exercises.sh" -exec bash -n {} \; -print

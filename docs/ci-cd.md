@@ -144,6 +144,31 @@ docker pull ghcr.io/angelosfikias0/docker-lab-api:latest
 
 ---
 
+## Buildx
+
+`docker buildx` is the CLI plugin that wraps BuildKit. It replaces the legacy builder (`docker build`) and is the default since Docker 23.
+
+```bash
+docker buildx ls                        # list builders
+docker buildx create --use --name lab   # create a builder backed by a BuildKit container
+docker buildx inspect --bootstrap       # show builder capabilities (platforms, cache)
+```
+
+Key capabilities over the legacy builder:
+
+| Feature | Legacy builder | Buildx + BuildKit |
+|---|---|---|
+| Multi-platform | No | `--platform linux/amd64,linux/arm64` |
+| Cache exports | No | `--cache-to type=gha,registry,s3` |
+| Secret mounts | No | `--mount=type=secret` |
+| SSH mounts | No | `--mount=type=ssh` |
+| Concurrent stages | No | Parallel stage execution |
+| OCI output | No | `--output type=oci` |
+
+In CI, `docker/setup-buildx-action` creates a builder and sets it as the default. All subsequent `docker build` or `docker/build-push-action` calls use BuildKit automatically.
+
+---
+
 ## GHA cache for BuildKit
 
 BuildKit supports external cache backends. The `gha` backend stores layer blobs in the Actions cache (10 GB per repo, evicted LRU).
@@ -178,6 +203,61 @@ outputs:
 # then in downstream job:
 ${{ needs.my-job.outputs.result }}
 ```
+
+---
+
+## Artifact registries
+
+### ghcr.io vs enterprise registries
+
+ghcr.io covers Docker images for a single GitHub org. In larger orgs the full artifact surface is broader:
+
+| Artifact type | Dev tool | Enterprise registry |
+|---|---|---|
+| Docker images | ghcr.io / Docker Hub | Artifactory, ECR, GCR |
+| npm packages | npmjs.org | Artifactory npm repo |
+| Maven/Gradle jars | Maven Central | Artifactory maven repo |
+| Python wheels | PyPI | Artifactory PyPI repo |
+| Helm charts | Artifact Hub | Artifactory Helm repo |
+| Terraform modules | Terraform Registry | Artifactory generic repo |
+
+Without a unified registry you end up with separate systems per type, inconsistent access control, and no unified audit log.
+
+### Artifactory repo types
+
+Artifactory organises storage into three repo types, all addressable through the same URL pattern:
+
+```
+Local repos   — artifacts you build and own
+               docker-local, npm-local, maven-local
+
+Remote repos  — proxy + cache for external sources
+               docker-remote → caches Docker Hub pulls
+               npm-remote    → caches npmjs.org pulls
+               Benefit: external outage does not kill CI; cache hits are instant
+
+Virtual repos — single endpoint aggregating local + remote
+               docker-virtual = docker-local + docker-remote
+               Clients point at the virtual URL and never know the difference
+```
+
+### Pipeline position
+
+```
+[git push]
+    ↓
+[CI build] → Docker image + npm package + Helm chart
+    ↓
+[push all three to Artifactory]   ← one registry, three repo types
+    ↓
+[K8s pulls Docker image from Artifactory]
+[npm install pulls package from Artifactory npm repo]
+[helm install pulls chart from Artifactory Helm repo]
+```
+
+### Local equivalent: registry:2
+
+The Docker-maintained `registry:2` image is the open-source equivalent for Docker images only. It is what Artifactory's docker-local repo is built on internally and what most self-hosted setups use for air-gapped environments. See `use-cases/private-registry.md` for a runnable example.
 
 ---
 

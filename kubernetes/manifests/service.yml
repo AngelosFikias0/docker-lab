@@ -1,0 +1,28 @@
+---
+# ClusterIP — internal access only
+apiVersion: v1
+kind: Service
+metadata:
+  name: lab-app
+spec:
+  selector:
+    app: lab-app
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+
+---
+# NodePort — accessible via any node IP on port 30080
+apiVersion: v1
+kind: Service
+metadata:
+  name: lab-app-nodeport
+spec:
+  selector:
+    app: lab-app
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+  type: NodePort

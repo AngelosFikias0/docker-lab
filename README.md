@@ -48,13 +48,20 @@ docker-lab/
 │
 ├── private-registry/     # Local registry:2 + UI, pull-through cache, v2 API exercises
 │
+├── swarm/                # Docker Swarm Mode: services, overlay networks, stacks, routing mesh
+│
+├── kubernetes/           # Kubernetes: pod, deployment, service, PVC — exercises via kind
+│   └── manifests/        # pod.yml, deployment.yml, service.yml, pvc.yml
+│
 ├── docs/                 # Reference notes on internals and theory
 │   ├── linux-basics.md   # Processes, namespaces, cgroups, syscalls
 │   ├── containers.md     # Fundamentals, history, lifecycle, identity files
 │   ├── docker.md         # Architecture, logging, signals, health checks, k8s integration
 │   ├── networking.md     # Bridge, veth, DNS, NAT, overlay, k8s mapping
 │   ├── operations.md     # Container management, restart policies, cleanup
-│   └── ci-cd.md          # GitHub Actions internals, GHA cache, ghcr.io, release flow
+│   ├── ci-cd.md          # GitHub Actions internals, GHA cache, ghcr.io, release flow
+│   ├── swarm.md          # Swarm Mode, Raft, overlay networks, services, stacks
+│   └── kubernetes.md     # Pods, Deployments, Services, PVC, kubectl, kind/minikube/k3s
 │
 └── use-cases/            # Problem-solution reference by scenario
     ├── debugging.md      # Container exits, OOM, network issues, no-shell images

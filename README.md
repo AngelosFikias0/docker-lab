@@ -49,8 +49,10 @@ docker-lab/
 ├── private-registry/     # Local registry:2 + UI, pull-through cache, v2 API exercises
 │
 ├── swarm/                # Docker Swarm Mode: services, overlay networks, stacks, routing mesh
+│   └── swarm.md          # Raft, routing mesh, services, docker stack internals
 │
 ├── kubernetes/           # Kubernetes: pod, deployment, service, PVC — exercises via kind
+│   ├── kubernetes.md     # Pods, Deployments, Services, PVC, kubectl, kind/minikube/k3s
 │   └── manifests/        # pod.yml, deployment.yml, service.yml, pvc.yml
 │
 ├── docs/                 # Reference notes on internals and theory
@@ -60,8 +62,8 @@ docker-lab/
 │   ├── networking.md     # Bridge, veth, DNS, NAT, overlay, k8s mapping
 │   ├── operations.md     # Container management, restart policies, cleanup
 │   ├── ci-cd.md          # GitHub Actions internals, GHA cache, ghcr.io, release flow
-│   ├── swarm.md          # Swarm Mode, Raft, overlay networks, services, stacks
-│   └── kubernetes.md     # Pods, Deployments, Services, PVC, kubectl, kind/minikube/k3s
+│   ├── vms.md            # KVM, QEMU, protection rings, EPT, Firecracker
+│   └── 12-factor.md      # 12-Factor App + Reactive Manifesto mapped to Docker/k8s
 │
 └── use-cases/            # Problem-solution reference by scenario
     ├── debugging.md      # Container exits, OOM, network issues, no-shell images
@@ -150,3 +152,4 @@ See [`docs/ci-cd.md`](docs/ci-cd.md) for internals: GHA job model, matrix strate
 **Books**
 
 - _Docker: Up and Running_ - Karl Matthias, Sean P. Kane (O'Reilly)
+- _Docker Deep Dive_ (2025 Edition) - Nigel Poulton

@@ -34,13 +34,23 @@ This is the architectural split visible in `docker version` today.
 
 ## Architecture
 
-```
-docker CLI
-  -> Docker daemon (dockerd)       # API server, image management, volume/network lifecycle
-    -> containerd                  # container lifecycle manager, image distribution
-      -> containerd-shim           # one shim per container, keeps container alive if daemon restarts
-        -> runc                    # OCI runtime: creates namespaces/cgroups, exec's the process
-          -> container process     # your app, PID 1 inside its namespace
+```mermaid
+graph TD
+    CLI[docker CLI]
+    DOCKERD[dockerd]
+    PROXY[docker-proxy]
+    CONTAINERD[containerd]
+    SHIM[containerd-shim-runc-v2]
+    RUNC[runc]
+    PROC[container process]
+
+    CLI -->|Unix socket| DOCKERD
+    DOCKERD -->|one per -p rule| PROXY
+    DOCKERD -->|gRPC| CONTAINERD
+    CONTAINERD -->|spawns| SHIM
+    SHIM -->|exec OCI bundle| RUNC
+    RUNC -->|exits after start| PROC
+    SHIM -->|holds FDs + exit status| PROC
 ```
 
 Each layer has a distinct responsibility. Splitting them allows `containerd` to be used without `dockerd` (as in Kubernetes) and allows `runc` to be swapped for alternative OCI runtimes (gVisor, Kata).

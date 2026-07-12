@@ -6,11 +6,27 @@ Metrics pipeline for Docker containers: cAdvisor scrapes cgroup data, Prometheus
 
 ## Stack
 
-```
-containers
-  -> cAdvisor          # reads cgroup files + Docker socket, exposes /metrics
-    -> Prometheus      # scrapes cAdvisor every 10s, evaluates alert rules
-      -> Grafana       # queries Prometheus via PromQL, renders dashboards
+```mermaid
+graph LR
+    subgraph Containers
+        C1[app]
+        C2[worker]
+    end
+    subgraph cAdvisor
+        CA[reads cgroups + Docker socket] --> ME[exposes /metrics]
+    end
+    subgraph Prometheus
+        SC[scrape every 10s] --> DB[TSDB]
+        DB --> AL[alert rules]
+    end
+    subgraph Grafana
+        GR[PromQL queries] --> DA[dashboards]
+    end
+    C1 -->|cgroup stats| CA
+    C2 -->|cgroup stats| CA
+    ME -->|pull| SC
+    DB -->|query| GR
+    AL -->|fire| AM[Alertmanager]
 ```
 
 | Service    | Port | Purpose                        |

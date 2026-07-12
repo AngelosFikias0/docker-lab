@@ -11,6 +11,23 @@ Each container = isolated Linux **network namespace** (`netns`).
 
 ---
 
+## Architecture Overview
+
+```mermaid
+graph LR
+    subgraph HostA[Host A]
+        C1[container] <-->|veth pair| BR1[docker0]
+        BR1 <-->|NAT| N1[eth0]
+    end
+    subgraph HostB[Host B]
+        C2[container] <-->|veth pair| BR2[docker0]
+        BR2 <-->|NAT| N2[eth0]
+    end
+    N1 <-->|VXLAN over UDP 4789| N2
+```
+
+---
+
 ## Bridge Networks
 
 **1. Docker creates a Linux bridge device** (virtual switch) per user-defined network.

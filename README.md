@@ -4,6 +4,27 @@ A structured Docker engineering lab. Progressive depth from container primitives
 
 ---
 
+## Learning Path
+
+```mermaid
+graph TD
+    bas[basics] --> img[images]
+    img --> insp[image-inspection]
+    insp --> net[networks]
+    net --> stor[storage]
+    stor --> perf[performance]
+    perf --> sec[security]
+    sec --> reg[private-registry]
+    reg --> comp[compose]
+    comp --> obs[observability]
+    comp --> swrm[swarm]
+    swrm --> k8s[kubernetes]
+    obs --> cicd[CI/CD]
+    k8s --> cicd
+```
+
+---
+
 ## Structure
 
 ```
@@ -148,6 +169,41 @@ See [`docs/ci-cd.md`](docs/ci-cd.md) for internals: GHA job model, matrix strate
 - [Runtime metrics](https://docs.docker.com/engine/containers/runmetrics/)
 - [CFS scheduler](https://www.kernel.org/doc/html/latest/scheduler/sched-design-CFS.html)
 - [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html)
+
+**Orchestration**
+
+- [Docker Swarm overview](https://docs.docker.com/engine/swarm/)
+- [Raft consensus algorithm](https://raft.github.io/)
+- [Kubernetes documentation](https://kubernetes.io/docs/home/)
+- [kubectl reference](https://kubernetes.io/docs/reference/kubectl/)
+- [kind (Kubernetes in Docker)](https://kind.sigs.k8s.io/)
+
+**Observability**
+
+- [Prometheus documentation](https://prometheus.io/docs/introduction/overview/)
+- [PromQL basics](https://prometheus.io/docs/prometheus/latest/querying/basics/)
+- [cAdvisor](https://github.com/google/cadvisor)
+- [Grafana documentation](https://grafana.com/docs/grafana/latest/)
+
+**CI/CD and registries**
+
+- [GitHub Actions documentation](https://docs.github.com/en/actions)
+- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+- [Docker Build Cloud](https://docs.docker.com/build/cloud/)
+- [OCI Distribution Spec](https://github.com/opencontainers/distribution-spec)
+
+**Virtualization**
+
+- [KVM documentation](https://www.linux-kvm.org/page/Documents)
+- [QEMU documentation](https://www.qemu.org/docs/master/)
+- [Firecracker](https://firecracker-microvm.github.io/)
+- [gVisor](https://gvisor.dev/docs/)
+- [Kata Containers](https://katacontainers.io/)
+
+**Design principles**
+
+- [The 12-Factor App](https://12factor.net/)
+- [Reactive Manifesto](https://www.reactivemanifesto.org/)
 
 **Books**
 

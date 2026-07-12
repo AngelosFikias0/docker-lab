@@ -141,3 +141,45 @@ Client → DNS lookup (CoreDNS / Consul)
 ```
 
 In Kubernetes, a Service's ClusterIP is the VIP. `kube-proxy` (or Cilium's eBPF replacement) maintains the forwarding rules that map VIP → pod IPs.
+
+---
+
+## Overlay VXLAN: Full Packet Walk
+
+When a container on host A sends a packet to a container on host B via an overlay network, this is the full path:
+
+```
+App inside container calls: connect("other_service", port 8080)
+
+1. DNS resolution (127.0.0.11 embedded resolver)
+   "other_service" → 10.0.0.6  (overlay IP of destination container)
+
+2. ARP inside the overlay namespace
+   10.0.0.6 → who has this IP? → MAC 02:42:0a:00:00:06
+
+3. VXLAN FDB (Forwarding Database) lookup
+   MAC 02:42:0a:00:00:06 → VTEP 10.0.5.12  (real IP of host B on underlay)
+
+4. Kernel encapsulates the original Ethernet frame:
+   Outer UDP packet:
+     src:  10.0.5.11:random_port  (host A real IP)
+     dst:  10.0.5.12:4789         (host B real IP, VXLAN port)
+   VXLAN header: VNI (network ID)
+   Inner payload: original container Ethernet frame
+
+5. Underlay network routes the outer UDP packet
+   Standard IP routing — switches, routers, cloud VPC routing
+   No Docker awareness in the underlay at all
+
+6. Arrives at host B (10.0.5.12)
+   Kernel VXLAN driver decapsulates the outer UDP
+   Delivers inner frame to the local VXLAN interface
+   Inner frame enters host B's overlay bridge
+   Forwarded via veth into destination container's network namespace
+
+7. Destination container receives the packet on its eth0
+```
+
+The overlay network is a **virtual L2 network stretched across L3 infrastructure**. Containers see it as a simple local network. All the tunneling is invisible to them.
+
+Docker Swarm distributes the FDB (MAC → VTEP mappings) via its gossip protocol (built on the same Raft/Serf layer as cluster management). In standalone overlay (non-Swarm), an external key-value store provides this.

@@ -178,3 +178,91 @@ nsenter -t <pid> -n <cmd>
 cat /proc/<pid>/cmdline
 cat /proc/<pid>/environ
 ```
+
+---
+
+## chroot and unshare
+
+Two primitives that predate Docker but underpin how containers work.
+
+### chroot
+
+Changes the apparent root directory for a process and its children. The process cannot navigate above its new root — it is locked in a "chroot jail."
+
+```bash
+# Create a minimal root filesystem
+mkdir -p /tmp/myjail/{bin,lib,lib64}
+cp /bin/sh /tmp/myjail/bin/
+# copy required shared libs...
+
+chroot /tmp/myjail /bin/sh
+# inside: / is now /tmp/myjail on the real host
+# cannot cd .. above /
+```
+
+chroot only isolates the **filesystem view**. It does not isolate PIDs, network, or users — those require namespaces. A root process in a chroot can still interact with host processes via `/proc`. chroot is necessary but not sufficient for container isolation.
+
+Container filesystems work the same way: the container's root `/` is a directory on the host's real filesystem, treated as `/` by a different mount namespace.
+
+### unshare
+
+Creates new namespaces for a process without requiring a container runtime. The low-level equivalent of `docker run` for experimenting with isolation primitives.
+
+```bash
+# Create a new PID + network namespace for a shell
+unshare --pid --net --fork --mount-proc bash
+# inside: PID 1 is your shell, no network interfaces visible
+
+# Create a user namespace (unprivileged)
+unshare --user --map-root-user bash
+# inside: appears as root, but mapped to your real UID on the host
+```
+
+`unshare` is used in tests, container runtimes, and sandboxes. Docker's runc uses these syscalls (`CLONE_NEWPID`, `CLONE_NEWNET`, etc.) when starting a container.
+
+---
+
+## /sys: kernel state interface
+
+`/sys` is a virtual filesystem (sysfs) that exposes the internal state of the kernel, device drivers, and hardware to userspace. Nothing on disk — generated on every read.
+
+```
+/sys/
+  block/          # block devices (disks)
+  bus/            # hardware bus subsystems
+  class/          # device classes (net, block, etc.)
+  devices/        # device tree
+  fs/             # filesystem-related kernel state
+  fs/cgroup/      # cgroup v2 hierarchy
+  kernel/         # kernel parameters
+  net/            # network device state
+  power/          # power management
+```
+
+For container work, the relevant subtrees:
+
+```bash
+# cgroup limits and stats for a Docker container
+/sys/fs/cgroup/system.slice/docker-<id>.scope/
+  memory.current          # current memory usage in bytes
+  memory.max              # memory limit
+  cpu.stat                # CPU usage counters
+  cpu.max                 # CPU quota/period
+
+# network device state
+/sys/class/net/<interface>/
+  /sys/class/net/eth0/address    # MAC address
+  /sys/class/net/eth0/mtu        # MTU
+  /sys/class/net/eth0/operstate  # up/down
+```
+
+The cgroup path for a specific container:
+
+```bash
+# find the container's cgroup path
+docker inspect <id> --format '{{ .HostConfig.CgroupParent }}'
+# or
+cat /proc/<container-pid>/cgroup
+```
+
+Docker uses `/sys/fs/cgroup/` not just to enforce limits but also to read resource usage for `docker stats`.

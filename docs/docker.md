@@ -343,3 +343,81 @@ DOCKER_BUILDKIT=1 docker build .    # explicit (not needed on modern Docker)
 | Inline cache (`--cache-from`) | Limited | Full |
 
 `buildx` is the CLI frontend for BuildKit. It manages builder instances and enables multi-platform builds via QEMU emulation or native remote builders.
+
+---
+
+## Docker Component Roles
+
+Five server-side components behind the `docker` CLI:
+
+```
+docker CLI
+  └── dockerd (Unix socket: /var/run/docker.sock)
+        ├── docker-proxy     (one per -p port mapping)
+        └── containerd       (Unix socket: /run/containerd/containerd.sock)
+              └── containerd-shim-runc-v2   (one per container)
+                    └── runc                (constructs + starts container, then exits)
+                          └── container process
+```
+
+**dockerd** — one per server. Serves the Docker API, builds images, manages high-level networking (volumes, logging, stats). Client to containerd (not the other way around — dockerd calls containerd via gRPC).
+
+**docker-proxy** — one per port forwarding rule. Handles TCP/UDP forwarding from host IP:port to container IP:port. Runs as a separate process so port forwarding survives daemon restarts.
+
+**containerd** — one per server. Manages container lifecycle, copy-on-write filesystem, low-level network drivers. Speaks gRPC. The split from dockerd was motivated by: (1) containerd can be used without dockerd (Kubernetes does this), (2) containerd can survive dockerd restarts without killing containers.
+
+**containerd-shim-runc-v2** — one per container. Keeps the container alive if containerd restarts. Holds open file descriptors (stdin/stdout/stderr) and reports exit status back to containerd. The minimal in-memory footprint after runc exits.
+
+**runc** — constructs the container (namespaces, cgroups, mounts), execs the process, then exits. Its children are adopted by containerd-shim. runc reads OCI bundle config from disk (`config.json`).
+
+dockerd and containerd communicate over a Unix socket using gRPC. dockerd is the client; containerd is the server.
+
+---
+
+## Storage Internals
+
+### How layers are identified: two parallel systems
+
+Docker uses two co-operating systems to track image layers on disk.
+
+**System 1 — Content-addressable identity (layerdb)**
+
+```
+/var/lib/docker/image/overlay2/layerdb/sha256/<diffID>/
+  ├── diff      # the diffID itself (SHA256 of uncompressed tar of this layer's files)
+  ├── size      # byte size of this layer's diff
+  ├── cache-id  # pointer to System 2 (the physical storage directory name)
+  └── parent    # chainID of the parent layer (absent for the base layer)
+```
+
+- **DiffID**: SHA256 of the uncompressed tar content of this single layer's filesystem diff.
+- **ChainID**: SHA256 of `parent_chainID + " " + diffID`. Recursive — encodes the entire ancestor chain, not just this layer.
+
+This is content-addressable: identical content always produces the identical DiffID. Two completely unrelated images with a layer containing the exact same file changes share one DiffID and one physical copy on disk.
+
+**System 2 — Physical storage (overlay2 dirs)**
+
+```
+/var/lib/docker/overlay2/<cache-id>/
+  ├── diff/     # actual extracted files for this layer
+  ├── link      # short symlink alias used in overlay mount syntax
+  ├── lower     # text file listing parent layer links (for lowerdir= mount)
+  └── work/     # overlay2 scratch space (required by kernel overlay driver)
+```
+
+The `cache-id` is not content-derived — it is a random UUID-like string assigned at extraction time. The `cache-id` file inside layerdb (System 1) is the pointer that maps content-addressable identity → physical storage location.
+
+**Why two systems?**
+
+- layerdb (content-addressable) answers: "do I already have this content, and what is its position in the parent chain?" — used for cache-hit detection during builds and pulls.
+- overlay2 dirs (physical) answer: "where on disk are the actual files, and how do I construct the `lowerdir=...` mount string for the kernel?" — used at container startup to mount the union filesystem.
+
+### overlay2 vs ZFS
+
+| | overlay2 | ZFS |
+|---|---|---|
+| Type | Union filesystem on top of ext4/xfs | Combined filesystem + volume manager |
+| Layer model | Merges directories from underlying FS into a unified view | Layers = ZFS snapshots (read-only) + clones (writable) |
+| Copy-on-write | Copy-up on write: modifying a lower-layer file copies it into the upper writable layer | Built into ZFS semantics natively |
+| Block management | Delegates to underlying FS (ext4/xfs) | Manages its own block pools (vdevs) |
+| Docker default | Yes | Requires ZFS on the host |

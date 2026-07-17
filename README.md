@@ -86,6 +86,12 @@ docker-lab/
 │   ├── vms.md            # KVM, QEMU, protection rings, EPT, Firecracker
 │   └── 12-factor.md      # 12-Factor App + Reactive Manifesto mapped to Docker/k8s
 │
+├── languages/            # Same HTTP server in Python, Java, C, Go — image size and build pattern comparison
+│   ├── python/           # Interpreted: pip cache layer, runtime bundled, ~150MB
+│   ├── java/             # Bytecode: JDK build stage -> JRE runtime stage, ~180MB
+│   ├── c/                # Native binary: musl static link -> scratch, ~1MB
+│   └── go/               # Native binary: CGO_ENABLED=0 -> scratch, ~5MB
+│
 └── use-cases/            # Problem-solution reference by scenario
     ├── debugging.md      # Container exits, OOM, network issues, no-shell images
     ├── build-optimization.md  # Layer ordering, cache mounts, multi-stage, .dockerignore
